@@ -74,12 +74,17 @@ object GraphOps {
   def initTransitionProb(indexedNodes: RDD[(VertexId, NodeAttr)], indexedEdges: RDD[Edge[EdgeAttr]]) = {
     val bcP = context.broadcast(config.p)
     val bcQ = context.broadcast(config.q)
-    
+
     val graph = Graph(indexedNodes, indexedEdges).mapVertices[NodeAttr] { case (vertexId, nodeAttr) =>
-      val (j, q) = GraphOps.setupAlias(nodeAttr.neighbors)
-      val nextNodeIndex = GraphOps.drawAlias(j, q)
-      nodeAttr.path = Array(vertexId, nodeAttr.neighbors(nextNodeIndex)._1)
-      nodeAttr
+      var path:Array[Long] = null
+      if (nodeAttr != null) {  // add
+        val (j, q) = GraphOps.setupAlias(nodeAttr.neighbors)
+        val nextNodeIndex = GraphOps.drawAlias(j, q)
+        nodeAttr.path = Array(vertexId, nodeAttr.neighbors(nextNodeIndex)._1)
+        nodeAttr
+      }else{
+        NodeAttr() // create a new object
+      }
     }.mapTriplets { edgeTriplet: EdgeTriplet[NodeAttr, EdgeAttr] =>
       val (j, q) = GraphOps.setupEdgeAlias(bcP.value, bcQ.value)(edgeTriplet.srcId, 
         edgeTriplet.srcAttr.neighbors,
