@@ -3,6 +3,7 @@ package com.navercorp
 import java.io.Serializable
 
 import com.navercorp.graph.GraphOps
+import com.navercorp.utils.TimeStatistics
 import org.apache.spark.{SparkContext, SparkConf}
 import scopt.OptionParser
 import com.navercorp.lib.AbstractParams
@@ -117,19 +118,46 @@ object Main {
       Word2vec.setup(context, param)
       
       param.cmd match {
-        case Command.node2vec => 
+        case Command.node2vec => {
+          val timeRecorderForRandomWalk = new TimeStatistics
+          timeRecorderForRandomWalk.initRecordTime
+
           val graph = Node2vec.loadGraph()
           val randomPaths: RDD[String] = Node2vec.randomWalk(graph)
+
+          timeRecorderForRandomWalk.endRecordTime
+          timeRecorderForRandomWalk.writeResult("TimeRecord.txt", "m", "randomwalk")
+
           Node2vec.save(randomPaths)
+
+          val timeRecorderForEmbedding = new TimeStatistics
+          timeRecorderForEmbedding.initRecordTime
+
           Word2vec.readFromRdd(randomPaths).fit().save()
-        case Command.randomwalk =>
+
+          timeRecorderForEmbedding.endRecordTime
+          timeRecorderForRandomWalk.writeResult("TimeRecord.txt", "m", "embedding")
+        }
+        case Command.randomwalk => {
+          val timeRecorderForRandomWalk = new TimeStatistics
+          timeRecorderForRandomWalk.initRecordTime
+
           val graph = Node2vec.loadGraph()
           val randomPaths: RDD[String] = Node2vec.randomWalk(graph)
           Node2vec.save(randomPaths)
-          
+
+          timeRecorderForRandomWalk.endRecordTime
+          timeRecorderForRandomWalk.writeResult("TimeRecord.txt", "m", "randomwalk")
+        }
         case Command.embedding => {
+          val timeRecorderForEmbedding = new TimeStatistics
+          timeRecorderForEmbedding.initRecordTime
+
           val randomPaths = Word2vec.read(param.input)
           Word2vec.fit().save()
+
+          timeRecorderForEmbedding.endRecordTime
+          timeRecorderForEmbedding.writeResult("TimeRecord.txt", "m", "embedding")
         }
       }
     } getOrElse {
