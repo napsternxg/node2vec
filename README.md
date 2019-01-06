@@ -1,3 +1,6 @@
+I want to use node2vec spark version, but it seems that the origin source codes is full of bugs. So I had to fork it to fix bugs and promote it.
+
+-----
 # node2vec
 
 This repository provides a reference implementation of *node2vec* as described in the paper:<br>
