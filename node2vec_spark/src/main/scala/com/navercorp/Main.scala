@@ -136,7 +136,7 @@ object Main {
           Word2vec.readFromRdd(randomPaths).fit().save()
 
           timeRecorderForEmbedding.endRecordTime
-          timeRecorderForRandomWalk.writeResult("TimeRecord.txt", "m", "embedding")
+          timeRecorderForEmbedding.writeResult("TimeRecord.txt", "m", "embedding")
         }
         case Command.randomwalk => {
           val timeRecorderForRandomWalk = new TimeStatistics

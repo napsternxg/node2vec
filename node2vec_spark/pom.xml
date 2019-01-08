@@ -5,7 +5,7 @@
     <groupId>com.navercorp</groupId>
     <artifactId>node2vec</artifactId>
     <packaging>jar</packaging>
-    <version>0.0.2-SNAPSHOT</version>
+    <version>0.0.3-SNAPSHOT</version>
     
     <name>node2vec_spark</name>
     <url>http://snap.stanford.edu/node2vec/</url>

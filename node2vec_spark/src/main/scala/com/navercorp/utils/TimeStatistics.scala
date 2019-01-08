@@ -3,9 +3,7 @@ package com.navercorp.utils
 import java.io.{File, FileOutputStream, PrintWriter}
 import java.time.Instant
 
-class TimeStatistics {
-  var timeRecord1: Long = 0
-  var timeRecord2: Long = 0
+class TimeStatistics(var timeRecord1: Long = 0, var timeRecord2: Long = 0) {
 
   var timeRecordBeginTimestamp: String = ""
 

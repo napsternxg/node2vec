@@ -137,7 +137,7 @@ the output file *word2vec model* has the spark word2vec model format. please ref
 2. [Efficient Estimation of Word Representations in Vector Space](https://arxiv.org/abs/1301.3781)
 
 
-## usage:
+## usage example:
 ```
-/home/tiger/software/spark-2.3.0-bin-hadoop2.7/bin/spark-submit --class com.navercorp.Main ./target/node2vec-0.0.2-SNAPSHOT.jar --cmd randomwalk --p 0.25 --q 4 --walkLength 40 --weighted true --directed true --numWalks 50 --indexed false --input /home/tiger/Workspace/node2vec/node2vec_spark/data/ml100k-train-timeline.edgelist --output walkResults.txt
+./spark-submit --class com.navercorp.Main ./target/node2vec-0.0.3-SNAPSHOT.jar --cmd node2vec --p 0.25 --q 4 --walkLength 40 --weighted true --directed true --numWalks 5 --indexed false --dim 10 --iter 2 --input ./data/ml100k-train-timeline.edgelist --output embResults
 ```
