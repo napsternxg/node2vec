@@ -18,7 +18,7 @@ object Main {
 
   case class Params(iter: Int = 10,
                     lr: Double = 0.025,
-                    numPartition: Int = 10,
+                    numPartition: Int = 40,
                     dim: Int = 128,
                     window: Int = 10,
                     walkLength: Int = 80,

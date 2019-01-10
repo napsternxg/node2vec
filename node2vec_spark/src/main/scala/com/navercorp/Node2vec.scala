@@ -62,13 +62,13 @@ object Node2vec extends Serializable {
       }
       
       (srcId, NodeAttr(neighbors=neighbors_))
-    }.repartition(200).cache
+    }.repartition(config.numPartition).persist(StorageLevel.MEMORY_AND_DISK)
     
     val edge2attr = node2attr.flatMap { case (srcId, clickNode) =>
       clickNode.neighbors.map { case (dstId, weight) =>
         Edge(srcId, dstId, EdgeAttr())
       }
-    }.repartition(200).cache
+    }.repartition(config.numPartition).persist(StorageLevel.MEMORY_AND_DISK)
     
     GraphOps.initTransitionProb(node2attr, edge2attr)
   }
@@ -76,11 +76,11 @@ object Node2vec extends Serializable {
   def randomWalk(g: Graph[NodeAttr, EdgeAttr]) = {
     val edge2attr = g.triplets.map { edgeTriplet =>
       (s"${edgeTriplet.srcId}${edgeTriplet.dstId}", edgeTriplet.attr)
-    }.reduceByKey { case (l, r) => l }.partitionBy(new HashPartitioner(200)).persist(StorageLevel.MEMORY_ONLY)
-    logger.info(s"edge2attr: ${edge2attr.count}")
+    }.reduceByKey { case (l, r) => l }.partitionBy(new HashPartitioner(config.numPartition)).persist(StorageLevel.MEMORY_AND_DISK)
+//    logger.info(s"edge2attr: ${edge2attr.count}")
 
-    val examples = g.vertices.filter(x=>x._2.path.nonEmpty).cache
-    logger.info(s"examples: ${examples.count}")
+    val examples = g.vertices.filter(x=>x._2.path.nonEmpty).persist(StorageLevel.MEMORY_AND_DISK)
+//    logger.info(s"examples: ${examples.count}")
     
     g.unpersist(blocking = false)
     g.edges.unpersist(blocking = false)
@@ -88,13 +88,11 @@ object Node2vec extends Serializable {
     
     var totalRandomPath: RDD[String] = null
     for (iter <- 0 until config.numWalks) {
-      var prevRandomPath: RDD[String] = null
       var randomPath: RDD[String] = examples.map { case (nodeId, clickNode) =>
         clickNode.path.mkString("\t")
-      }.cache
-      var activeWalks = randomPath.first
+      }.persist(StorageLevel.MEMORY_AND_DISK)
+
       for (walkCount <- 0 until config.walkLength) {
-        prevRandomPath = randomPath
         randomPath = edge2attr.join(randomPath.mapPartitions { iter =>
           iter.map { pathBuffer =>
             val paths = pathBuffer.split("\t")
@@ -115,17 +113,11 @@ object Node2vec extends Serializable {
               case e: Exception => throw new RuntimeException(e.getMessage)
             }
           }.filter(_!=null)
-        }.cache
-        
-        activeWalks = randomPath.first
-        prevRandomPath.unpersist(blocking=false)
+        }.persist(StorageLevel.MEMORY_AND_DISK)
       }
       
       if (totalRandomPath != null) {
-        val prevRandomWalkPaths = totalRandomPath
-        totalRandomPath = totalRandomPath.union(randomPath).cache()
-        totalRandomPath.count
-        prevRandomWalkPaths.unpersist(blocking = false)
+        totalRandomPath = totalRandomPath.union(randomPath).persist(StorageLevel.MEMORY_AND_DISK)
       } else {
         totalRandomPath = randomPath
       }
@@ -164,7 +156,7 @@ object Node2vec extends Serializable {
   
   def save(randomPaths: RDD[String]): this.type = {
     randomPaths.filter(x => x != null && x.replaceAll("\\s", "").length > 0)
-            .repartition(200)
+            .repartition(config.numPartition)
             .saveAsTextFile(s"${config.output}.${Property.pathSuffix}")
     
     if (Option(this.label2id).isDefined) {

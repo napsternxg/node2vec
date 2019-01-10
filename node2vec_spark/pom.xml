@@ -5,10 +5,10 @@
     <groupId>com.navercorp</groupId>
     <artifactId>node2vec</artifactId>
     <packaging>jar</packaging>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>0.0.4-SNAPSHOT</version>
     
-    <name>node2vec_spark</name>
-    <url>http://snap.stanford.edu/node2vec/</url>
+    <name>node2vec_spark_enhanced</name>
+    <url>https://github.com/superPershing</url>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
