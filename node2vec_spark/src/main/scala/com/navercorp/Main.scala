@@ -4,10 +4,11 @@ import java.io.Serializable
 
 import com.navercorp.graph.GraphOps
 import com.navercorp.utils.TimeStatistics
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.{SparkConf, SparkContext}
 import scopt.OptionParser
 import com.navercorp.lib.AbstractParams
 import org.apache.spark.rdd.RDD
+import org.apache.spark.storage.StorageLevel
 
 object Main {
   object Command extends Enumeration {
@@ -123,7 +124,7 @@ object Main {
           timeRecorderForRandomWalk.initRecordTime
 
           val graph = Node2vec.loadGraph()
-          val randomPaths: RDD[String] = Node2vec.randomWalk(graph)
+          val randomPaths: RDD[String] = Node2vec.randomWalk(graph).persist(StorageLevel.MEMORY_AND_DISK)
 
           timeRecorderForRandomWalk.endRecordTime
           timeRecorderForRandomWalk.writeResult("TimeRecord.txt", "m", "randomwalk")

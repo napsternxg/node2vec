@@ -139,5 +139,5 @@ the output file *word2vec model* has the spark word2vec model format. please ref
 
 ## usage example:
 ```
-./spark-submit --class com.navercorp.Main ./target/node2vec-0.0.3-SNAPSHOT.jar --cmd node2vec --p 0.25 --q 4 --walkLength 40 --weighted true --directed true --numWalks 5 --indexed false --dim 10 --iter 2 --input ./data/ml100k-train-timeline.edgelist --output embResults
+./spark-submit --class com.navercorp.Main ./target/node2vec-0.0.4-SNAPSHOT.jar --cmd node2vec --p 0.25 --q 4 --walkLength 40 --weighted true --directed true --numWalks 5 --indexed false --dim 10 --iter 2 --input ./data/ml100k-train-timeline.edgelist --output embResults
 ```

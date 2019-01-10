@@ -75,7 +75,7 @@ object GraphOps {
     val bcP = context.broadcast(config.p)
     val bcQ = context.broadcast(config.q)
 
-    val graph = Graph(indexedNodes, indexedEdges).mapVertices[NodeAttr] { case (vertexId, nodeAttr) =>
+    val graph: Graph[NodeAttr, EdgeAttr] = Graph(indexedNodes, indexedEdges).mapVertices[NodeAttr] { case (vertexId, nodeAttr) =>
       var path:Array[Long] = null
       if (nodeAttr != null) {  // add
         val (j, q) = GraphOps.setupAlias(nodeAttr.neighbors)
