@@ -120,24 +120,18 @@ object Main {
       
       param.cmd match {
         case Command.node2vec => {
-          val timeRecorderForRandomWalk = new TimeStatistics
-          timeRecorderForRandomWalk.initRecordTime
+          val timeRecorderForNode2vec = new TimeStatistics
+          timeRecorderForNode2vec.initRecordTime
 
           val graph = Node2vec.loadGraph()
           val randomPaths: RDD[String] = Node2vec.randomWalk(graph).persist(StorageLevel.MEMORY_AND_DISK)
 
-          timeRecorderForRandomWalk.endRecordTime
-          timeRecorderForRandomWalk.writeResult("TimeRecord.txt", "m", "randomwalk")
-
-          Node2vec.save(randomPaths)
-
-          val timeRecorderForEmbedding = new TimeStatistics
-          timeRecorderForEmbedding.initRecordTime
+//          Node2vec.save(randomPaths)
 
           Word2vec.readFromRdd(randomPaths).fit().save()
 
-          timeRecorderForEmbedding.endRecordTime
-          timeRecorderForEmbedding.writeResult("TimeRecord.txt", "m", "embedding")
+          timeRecorderForNode2vec.endRecordTime
+          timeRecorderForNode2vec.writeResult("TimeRecord.txt", "m", "node2vec")
         }
         case Command.randomwalk => {
           val timeRecorderForRandomWalk = new TimeStatistics

@@ -141,3 +141,8 @@ the output file *word2vec model* has the spark word2vec model format. please ref
 ```
 ./spark-submit --class com.navercorp.Main ./target/node2vec-0.0.4-SNAPSHOT.jar --cmd node2vec --p 0.25 --q 4 --walkLength 40 --weighted true --directed true --numWalks 5 --indexed false --dim 10 --iter 2 --input ./data/ml100k-train-timeline.edgelist --output embResults
 ```
+
+with 
+```
+/home/tiger/software/spark-2.3.0-bin-hadoop2.7/bin/spark-submit --class com.navercorp.Main ./target/node2vec-0.0.4-SNAPSHOT.jar --cmd node2vec --p 1 --q 0.25 --degree 1000 --walkLength 80 --weighted true --directed true --numWalks 50 --indexed false --dim 256 --iter 5 --window 10 --input ./data/ml100k-train-timeline.edgelist --output /home/tiger/Workspace/node2vec_spark_results/node2vecResults
+```
