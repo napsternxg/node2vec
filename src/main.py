@@ -14,6 +14,14 @@ import numpy as np
 import networkx as nx
 import node2vec
 from gensim.models import Word2Vec
+import gzip
+from tqdm import tqdm
+from glob import glob
+import logging
+
+logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s', level=logging.INFO)
+ 
+
 
 def parse_args():
 	'''
@@ -59,6 +67,8 @@ def parse_args():
 	parser.add_argument('--directed', dest='directed', action='store_true',
 	                    help='Graph is (un)directed. Default is undirected.')
 	parser.add_argument('--undirected', dest='undirected', action='store_false')
+	parser.add_argument('--cached-walks-path', type=str, default="cached_walks.txt",
+	                    help='Path to cache walks.')
 	parser.set_defaults(directed=False)
 
 	return parser.parse_args()
@@ -79,13 +89,44 @@ def read_graph():
 
 	return G
 
+def walks2str_list(walks):
+        for walk in tqdm(walks, desc="Process walks"):
+                yield list(map(str, walk))
+
+
+class Walks(object):
+        def __init__(self, dirname):
+                self.dirname = dirname
+
+        def __iter__(self):
+                for fname in glob("{}/part-*".format(self.dirname)):
+                        with open(fname) as fp:
+                            for line in fp:
+                                    line = line.strip().split("\t")
+                                    yield line
+
+def load_walks(cache_path):
+        walks = []
+        open_fn = open
+        if cache_path.endswith("gz"):
+            open_fn = gzip.open
+        with open_fn(cache_path) as fp:
+                for line in tqdm(fp, desc="Reading walks"):
+                        walk = line.strip().split("\t")
+                        walks.append(walk)
+        return walks
+
+def save_walks(walks, cache_path):
+        with open(cache_path, "w+") as fp:
+                for walk in tqdm(walks, desc="Writing walks"):
+                    print >> fp, "\t".join(walk)
+
 def learn_embeddings(walks):
 	'''
 	Learn embeddings by optimizing the Skipgram objective using SGD.
 	'''
-	walks = [map(str, walk) for walk in walks]
 	model = Word2Vec(walks, size=args.dimensions, window=args.window_size, min_count=0, sg=1, workers=args.workers, iter=args.iter)
-	model.save_word2vec_format(args.output)
+	model.save(args.output)
 	
 	return
 
@@ -93,10 +134,26 @@ def main(args):
 	'''
 	Pipeline for representational learning for all nodes in a graph.
 	'''
-	nx_G = read_graph()
-	G = node2vec.Graph(nx_G, args.directed, args.p, args.q)
-	G.preprocess_transition_probs()
-	walks = G.simulate_walks(args.num_walks, args.walk_length)
+        print("Args: {}".format(args))
+        try:
+                #walks = load_walks(args.cached_walks_path)
+                walks = Walks(args.cached_walks_path)
+        except IOError as e:
+                print("Found no cached walks at {}".format(args.cached_walks_path))
+                print("Generating walks from graph.")
+                nx_G = read_graph()
+                G = node2vec.Graph(nx_G, args.directed, args.p, args.q, n_jobs=args.workers)
+                print("Loaded graph: {}".format(G))
+                print("Processing transition probabilities.")
+                G.preprocess_transition_probs()
+                print("Simulating walks.")
+                walks = G.simulate_walks(args.num_walks, args.walk_length)
+                walks = walks2str_list(walks)
+                print("Saving walks at {}".format(args.cached_walks_path))
+                save_walks(walks, args.cached_walks_path)
+                print("Loading walks")
+                walks = load_walks(args.cached_walks_path)
+        print("Learning embeddings.")
 	learn_embeddings(walks)
 
 if __name__ == "__main__":

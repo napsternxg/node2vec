@@ -1,56 +1,38 @@
 import numpy as np
 import networkx as nx
 import random
-
+from tqdm import tqdm
 
 class Graph():
-	def __init__(self, nx_G, is_directed, p, q):
+	def __init__(self, nx_G, is_directed, p, q, n_jobs=1):
 		self.G = nx_G
 		self.is_directed = is_directed
 		self.p = p
 		self.q = q
+                self.n_jobs = n_jobs
 
-	def node2vec_walk(self, walk_length, start_node):
-		'''
-		Simulate a random walk starting from start node.
-		'''
-		G = self.G
-		alias_nodes = self.alias_nodes
-		alias_edges = self.alias_edges
-
-		walk = [start_node]
-
-		while len(walk) < walk_length:
-			cur = walk[-1]
-			cur_nbrs = sorted(G.neighbors(cur))
-			if len(cur_nbrs) > 0:
-				if len(walk) == 1:
-					walk.append(cur_nbrs[alias_draw(alias_nodes[cur][0], alias_nodes[cur][1])])
-				else:
-					prev = walk[-2]
-					next = cur_nbrs[alias_draw(alias_edges[(prev, cur)][0], 
-						alias_edges[(prev, cur)][1])]
-					walk.append(next)
-			else:
-				break
-
-		return walk
+        def __repr__(self):
+            return "<G(nodes={}, edges={}), is_directed={}, p={}, q=q>".format(
+                    self.G.number_of_nodes(), self.G.size(),
+                    self.is_directed,
+                    self.p, self.q
+                    )
 
 	def simulate_walks(self, num_walks, walk_length):
 		'''
 		Repeatedly simulate random walks from each node.
 		'''
 		G = self.G
-		walks = []
 		nodes = list(G.nodes())
 		print 'Walk iteration:'
-		for walk_iter in range(num_walks):
+		for walk_iter in tqdm(range(num_walks), desc="Walks"):
 			print str(walk_iter+1), '/', str(num_walks)
 			random.shuffle(nodes)
-			for node in nodes:
-				walks.append(self.node2vec_walk(walk_length=walk_length, start_node=node))
-
-		return walks
+                        new_walks = get_walks_for_nodes(
+                                G, self.alias_nodes, self.alias_edges, nodes, walk_length=walk_length
+                                )
+                        for walk in new_walks:
+                                yield walk
 
 	def get_alias_edge(self, src, dst):
 		'''
@@ -80,18 +62,18 @@ class Graph():
 		G = self.G
 		is_directed = self.is_directed
 
-		alias_nodes = {}
-		for node in G.nodes():
-			unnormalized_probs = [G[node][nbr]['weight'] for nbr in sorted(G.neighbors(node))]
-			norm_const = sum(unnormalized_probs)
-			normalized_probs =  [float(u_prob)/norm_const for u_prob in unnormalized_probs]
-			alias_nodes[node] = alias_setup(normalized_probs)
+                alias_nodes = generate_alias_nodes(self.n_jobs, (
+                    (node, 
+                    [G[node][nbr]['weight'] for nbr in sorted(G.neighbors(node))])
+                    for node in G.nodes()
+                    ))
+                        
 
 		alias_edges = {}
 		triads = {}
 
 		if is_directed:
-			for edge in G.edges():
+			for edge in tqdm(G.edges(), desc="Transition edges"):
 				alias_edges[edge] = self.get_alias_edge(edge[0], edge[1])
 		else:
 			for edge in G.edges():
@@ -147,3 +129,42 @@ def alias_draw(J, q):
 	    return kk
 	else:
 	    return J[kk]
+
+def get_alias_nodes(node, unnormalized_probs):
+        norm_const = sum(unnormalized_probs)
+        normalized_probs =  [float(u_prob)/norm_const for u_prob in unnormalized_probs]
+        alias_nodes = alias_setup(normalized_probs)
+        return (node, alias_nodes)
+
+
+def generate_alias_nodes(n_jobs, node_neighbor_weights_iterator):
+        alias_nodes = []
+        for node, neighbor_weights in tqdm(node_neighbor_weights_iterator, desc="Alias nodes"):
+                alias_nodes.append(get_alias_nodes(node, neighbor_weights))
+        return dict(alias_nodes)
+
+def node2vec_walk(G, alias_nodes, alias_edges, walk_length, start_node):
+        '''
+        Simulate a random walk starting from start node.
+        '''
+        walk = [start_node]
+
+        while len(walk) < walk_length:
+                cur = walk[-1]
+                cur_nbrs = sorted(G.neighbors(cur))
+                if len(cur_nbrs) > 0:
+                        if len(walk) == 1:
+                                walk.append(cur_nbrs[alias_draw(alias_nodes[cur][0], alias_nodes[cur][1])])
+                        else:
+                                prev = walk[-2]
+                                next = cur_nbrs[alias_draw(alias_edges[(prev, cur)][0], 
+                                        alias_edges[(prev, cur)][1])]
+                                walk.append(next)
+                else:
+                        break
+
+        return walk
+
+def get_walks_for_nodes(G, alias_nodes, alias_edges, nodes, walk_length):
+    for node in tqdm(nodes, desc="Node walks"):
+            yield node2vec_walk(G, alias_nodes, alias_edges, walk_length, node)
